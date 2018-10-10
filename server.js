@@ -1,21 +1,39 @@
 const express = require('express');
 const app = express();
 
-const currentNum = 125;
+let currentNum = 10;
+
 const response = {
-	curNum: currentNum,
+	curNum: 0,
 	number: 0,
 	diff: 0,
 	progress: 0
 };
-
-calc = (res, number) => {
-	res.number = number;
-	res.diff = currentNum - number;
-	res.progress = number * 100 / currentNum;
+const curResponse = {
+	curNum: 0
 };
 
-app.get('/:number', (req, res) => {
+let curNumChange = setInterval(() => {
+		currentNum++;
+	}, 5000);
+
+calc = (res, number) => {
+	res.curNum = currentNum;
+	res.number = number;
+	res.diff = number - currentNum;
+	res.progress = Math.floor(currentNum * 100 / number);
+	if (res.diff <= 0) {
+		res.diff = 0;
+		res.progress = 100;
+	}
+};
+
+app.get('/queue/info', (req, res) => {
+	curResponse.curNum = currentNum;
+	res.send(curResponse);
+});
+
+app.get('/queue/:number', (req, res) => {
 	calc(response, req.params.number);
 	res.send(response);
 });
