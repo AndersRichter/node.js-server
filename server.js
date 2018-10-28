@@ -1,43 +1,42 @@
-const express = require('express');
-const app = express();
+const koa = require('koa');
 
-let currentNum = 10;
+const bodyparser = require('koa-bodyparser');
+const logger = require('koa-logger');
+const router = require('koa-router')();
 
-const response = {
-	curNum: 0,
-	number: 0,
-	diff: 0,
-	progress: 0
+const bluebird = require('bluebird');
+const pgp = require('pg-promise')({ promiseLib: bluebird, capSQL: true });
+
+const info = {
+    host: 'localhost',
+    port: 5432,
+    database: 'bmstu_db',
+    user: 'andrey',
+    password: 'andrey96'
 };
-const curResponse = {
-	curNum: 0
-};
+const database = pgp(info);
+const app = new koa();
 
-let curNumChange = setInterval(() => {
-		currentNum++;
-	}, 5000);
 
-calc = (res, number) => {
-	res.curNum = currentNum;
-	res.number = number;
-	res.diff = number - currentNum;
-	res.progress = Math.floor(currentNum * 100 / number);
-	if (res.diff <= 0) {
-		res.diff = 0;
-		res.progress = 100;
-	}
-};
+router.get('/api', async (ctx) => {
+    const test = await database.any(
+        `SELECT * FROM test`
+    );
 
-app.get('/queue/info', (req, res) => {
-	curResponse.curNum = currentNum;
-	res.send(curResponse);
+    if (test) {
+        ctx.body = test;
+        ctx.status = 200;
+    } else {
+        ctx.body = { message: "Can't find user" };
+        ctx.status = 404;
+    }
 });
 
-app.get('/queue/:number', (req, res) => {
-	calc(response, req.params.number);
-	res.send(response);
-});
+app
+    .use(bodyparser())
+    .use(logger())
+    .use(router.routes());
 
-app.listen(3000, () => {
-	console.log('Listening on port 3000');
+app.listen(5000, () => {
+    console.log('Server listen port -> 5000');
 });

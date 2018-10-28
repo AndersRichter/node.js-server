@@ -6,11 +6,16 @@
     "start": "node ./bin/www"
   },
   "dependencies": {
-    "cookie-parser": "~1.4.3",
-    "debug": "~2.6.9",
-    "express": "~4.16.0",
-    "http-errors": "~1.6.2",
-    "jade": "~1.11.0",
-    "morgan": "~1.9.0"
+    "bluebird": "^3.5.1",
+    "body-parser": "~1.18.2",
+    "nodemon": "^1.18.5",
+    "pg-native": "^2.2.0",
+    "pg-promise": "^7.3.2"
+  },
+  "devDependencies": {
+    "koa": "^2.4.1",
+    "koa-bodyparser": "^4.2.0",
+    "koa-logger": "^3.1.0",
+    "koa-router": "^7.3.0"
   }
 }
