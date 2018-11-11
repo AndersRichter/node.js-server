@@ -34,6 +34,17 @@ SET default_tablespace = '';
 SET default_with_oids = false;
 
 --
+-- Name: operate; Type: TABLE; Schema: public; Owner: andrey
+--
+
+CREATE TABLE public.operate (
+    user_numbers integer
+);
+
+
+ALTER TABLE public.operate OWNER TO andrey;
+
+--
 -- Name: queue; Type: TABLE; Schema: public; Owner: andrey
 --
 
@@ -114,6 +125,14 @@ ALTER SEQUENCE public.users_id_seq OWNED BY public.users.id;
 --
 
 ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_id_seq'::regclass);
+
+
+--
+-- Data for Name: operate; Type: TABLE DATA; Schema: public; Owner: andrey
+--
+
+COPY public.operate (user_numbers) FROM stdin;
+\.
 
 
 --
