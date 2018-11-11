@@ -1,5 +1,4 @@
 const koa = require('koa');
-const moment = require('moment');
 const uuidv1 = require('uuid/v1');
 
 const serverToken = '7feb24af-fc38-44de-bc38-04defc3804de';
