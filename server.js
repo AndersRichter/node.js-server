@@ -22,7 +22,7 @@ const app = new koa();
 
 const times = [];
 
-count = (array) => {
+countAverageTime = (array) => {
     if (array.length < 2) return 900000;
     let times = [];
     for (let i = 0; i < array.length - 1; i++) {
@@ -34,6 +34,40 @@ count = (array) => {
     });
     return Math.floor(average / times.length);
 };
+
+checkToken = async (ctx) => {
+    if (ctx.request.body.server_token) {
+        return checkServerToken(ctx);
+    } else if (ctx.request.body.user_token) {
+        const token = await database.one(
+            `SELECT user_token FROM users WHERE id = ${ctx.request.body.user_id}`
+        );
+        return checkUserToken(ctx, token);
+    } else {
+        ctx.status = 403;
+        return false;
+    }
+};
+
+checkServerToken = (ctx) => {
+    const token = ctx.request.body.server_token;
+    if (token !== serverToken) {
+        ctx.status = 403;
+        return false;
+    }
+    return true;
+};
+
+checkUserToken = (ctx, user_token) => {
+    const token = ctx.request.body.user_token;
+    if (token !== user_token.user_token) {
+        ctx.status = 403;
+        return false;
+    }
+    return true;
+};
+
+// API FORM
 
 router.get('/api/form', async (ctx) => {
     const uuid = uuidv1();
@@ -50,21 +84,7 @@ router.get('/api/form', async (ctx) => {
 });
 
 router.post('/api/form', async (ctx) => {
-    if (ctx.request.body.server_token &&
-        ctx.request.body.server_token !== serverToken) {
-        ctx.status = 401;
-        return;
-    }
-
-    const token = await database.one(
-      `SELECT user_token FROM users WHERE id = ${ctx.request.body.user_id}`
-    );
-
-    if (ctx.request.body.user_token &&
-        ctx.request.body.user_token !== token.user_token) {
-        ctx.status = 401;
-        return;
-    }
+    if (!await checkToken(ctx)) { return; }
 
     const data = await database.any(
         `SELECT * FROM users WHERE id = ${ctx.request.body.user_id}`
@@ -72,7 +92,7 @@ router.post('/api/form', async (ctx) => {
 
     ctx.body = {
         user_id: ctx.request.body.user_id,
-        user_token: token.user_token,
+        user_token: data.user_token,
         passport: {
             first_name: data.first_name,
             second_name: data.second_name,
@@ -120,15 +140,7 @@ router.post('/api/form', async (ctx) => {
 });
 
 router.put('/api/form', async (ctx) => {
-    const token = await database.one(
-        `SELECT user_token FROM users WHERE id = ${ctx.request.body.user_id}`
-    );
-
-    if (ctx.request.body.user_token &&
-        ctx.request.body.user_token !== token.user_token) {
-        ctx.status = 401;
-        return;
-    }
+    if (!await checkToken(ctx)) { return; }
 
     const data = ctx.request.body;
 
@@ -172,57 +184,125 @@ router.put('/api/form', async (ctx) => {
     ctx.status = 202;
 });
 
-router.put('/api/queue', async (ctx) => {
-    if (ctx.request.body.server_token &&
-        ctx.request.body.server_token !== serverToken) {
-        ctx.status = 401;
-        return;
-    }
+router.post('/api/form/clear', async (ctx) => {
+    if (!await checkToken(ctx)) { return; }
 
     await database.none(
-        `INSERT INTO queue (user_numbers) VALUES (${ctx.request.body.number});`
+      `TRUNCATE TABLE users restart identity;`
     );
 
     ctx.status = 202;
 });
 
-router.delete('/api/queue', async (ctx) => {
-    if (ctx.request.body.server_token &&
-        ctx.request.body.server_token !== serverToken) {
-        ctx.status = 401;
-        return;
-    }
+// API QUEUE
 
-    await database.none(
-        `DELETE FROM queue WHERE user_numbers = (${ctx.request.body.number});`
-    );
-
-    times.push(Date.now());
+router.post('/api/queue', async (ctx) => {
+    if (!await checkToken(ctx)) { return; }
 
     ctx.status = 202;
-});
-
-router.get('/api/queue', async (ctx) => {
-    if (ctx.request.body.server_token &&
-        ctx.request.body.server_token !== serverToken) {
-        ctx.status = 401;
-        return;
-    }
 
     const data = await database.any(
         `SELECT * FROM queue;`
     );
 
-    let response = [];
     data.forEach(item => {
-       response.push(item.user_numbers);
+        if (item.user_numbers === ctx.request.body.number) {
+            ctx.status = 400;
+        }
     });
 
+    if (ctx.status === 400) { return; }
+
+    await database.none(
+        `INSERT INTO queue (user_numbers) VALUES (${ctx.request.body.number});`
+    );
+});
+
+router.put('/api/queue', async (ctx) => {
+    if (!await checkToken(ctx)) { return; }
+
+    const data = await database.any(
+        `SELECT * FROM queue;`
+    );
+
+    for (let i = 0; i < data.length; i++) {
+        if (data[i].user_numbers === ctx.request.body.number) {
+            ctx.status = 202;
+        }
+    }
+
+    if (ctx.status !== 202) { ctx.status = 404; return; }
+
+    await database.none(
+        `DELETE FROM queue WHERE user_numbers = (${ctx.request.body.number});`
+    );
+
+    await database.none(
+        `INSERT INTO operate (user_numbers) VALUES (${ctx.request.body.number});`
+    );
+
+    times.push(Date.now());
+});
+
+router.delete('/api/queue', async (ctx) => {
+    if (!await checkToken(ctx)) { return; }
+
+    const data = await database.any(
+        `SELECT * FROM operate;`
+    );
+
+    for (let i = 0; i < data.length; i++) {
+        if (data[i].user_numbers === ctx.request.body.number) {
+            ctx.status = 202;
+        }
+    }
+
+    if (ctx.status !== 202) { ctx.status = 404; return; }
+
+    await database.none(
+        `DELETE FROM operate WHERE user_numbers = (${ctx.request.body.number});`
+    );
+});
+
+router.get('/api/queue', async (ctx) => {
+    let queue = [];
+    let operate = [];
+
+    const data1 = await database.any(
+        `SELECT * FROM queue;`
+    );
+
+    data1.forEach(item => {
+        queue.unshift(item.user_numbers);
+    });
+
+    const data2 = await database.any(
+        `SELECT * FROM operate;`
+    );
+
+    data2.forEach(item => {
+        operate.unshift(item.user_numbers);
+    });
 
     ctx.body = {
-      queue: response,
-      average_time: count(times)
+      queue: queue,
+        operate: operate,
+      average_time: countAverageTime(times)
     };
+    ctx.status = 202;
+});
+
+router.post('/api/queue/clear', async (ctx) => {
+    if (!await checkToken(ctx)) { return; }
+
+    await database.none(
+        `TRUNCATE TABLE queue restart identity;`
+    );
+
+    await database.none(
+        `TRUNCATE TABLE operate restart identity;`
+    );
+
     ctx.status = 202;
 });
 
