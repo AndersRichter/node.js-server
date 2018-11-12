@@ -216,6 +216,8 @@ router.post('/api/queue', async (ctx) => {
     await database.none(
         `INSERT INTO queue (user_numbers) VALUES (${ctx.request.body.number});`
     );
+
+    ctx.body = { message: 'OK'};
 });
 
 router.put('/api/queue', async (ctx) => {
@@ -227,6 +229,7 @@ router.put('/api/queue', async (ctx) => {
 
     for (let i = 0; i < data.length; i++) {
         if (data[i].user_numbers === ctx.request.body.number) {
+            ctx.body = { message: 'OK'};
             ctx.status = 202;
         }
     }
@@ -253,6 +256,7 @@ router.delete('/api/queue', async (ctx) => {
 
     for (let i = 0; i < data.length; i++) {
         if (data[i].user_numbers === ctx.request.body.number) {
+            ctx.body = { message: 'OK'};
             ctx.status = 202;
         }
     }
@@ -303,6 +307,7 @@ router.post('/api/queue/clear', async (ctx) => {
         `TRUNCATE TABLE operate restart identity;`
     );
 
+    ctx.body = { message: 'OK'};
     ctx.status = 202;
 });
 
