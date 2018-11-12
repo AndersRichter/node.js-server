@@ -31,7 +31,7 @@ let number = 1;
 makeRequest('POST', 1, url + '/clear');
 
 const randomNumber = () => {
-    return Math.floor(Math.random() * (10000 - 5000)) + 5000;
+    return Math.floor(Math.random() * (15000 - 5000)) + 5000;
 };
 
 const sendNumberToQueue = () => {
@@ -70,7 +70,7 @@ const getQueue = () => {
 setInterval(function () {
     getQueue();
     checkQueue();
-}, 2000);
+}, 3000);
 
 let sNTQ = setTimeout(function tick() {
     getQueue();
