@@ -22,8 +22,12 @@ const makeRequest = (method, number, url) => {
         console.log( xhr.status + ': ' + xhr.statusText );
         return false;
     } else {
-        console.log(JSON.parse(xhr.responseText));
-        return JSON.parse(xhr.responseText);
+        if (xhr.responseText) {
+            console.log(JSON.parse(xhr.responseText));
+            return JSON.parse(xhr.responseText);
+        } else {
+            console.log('Response = ', xhr.responseText);
+        }
     }
 };
 
@@ -40,25 +44,31 @@ const sendNumberToQueue = () => {
 };
 
 const moveNumberToOperate = () => {
-    makeRequest('PUT', status.queue[status.queue.length - 1], url);
+    if (status.queue) {
+        makeRequest('PUT', status.queue[status.queue.length - 1], url);
+    }
 };
 
 const moveNumberFromOperate = () => {
-    makeRequest('DELETE', status.operate[status.operate.length - 1], url);
+    if (status.operate) {
+        makeRequest('DELETE', status.operate[status.operate.length - 1], url);
+    }
 };
 
 const checkQueue = () => {
-    if (status.queue.length < 10) {
-        sendNumberToQueue();
-    }
-    if (status.queue.length > 15) {
-        moveNumberToOperate();
-    }
-    if (status.operate.length < 2) {
-        moveNumberToOperate();
-    }
-    if (status.operate.length > 5) {
-        moveNumberFromOperate();
+    if (status.queue && status.operate) {
+        if (status.queue.length < 10) {
+            sendNumberToQueue();
+        }
+        if (status.queue.length > 15) {
+            moveNumberToOperate();
+        }
+        if (status.operate.length < 2) {
+            moveNumberToOperate();
+        }
+        if (status.operate.length > 5) {
+            moveNumberFromOperate();
+        }
     }
 };
 

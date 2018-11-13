@@ -39,10 +39,16 @@ checkToken = async (ctx) => {
     if (ctx.request.body.server_token) {
         return checkServerToken(ctx);
     } else if (ctx.request.body.user_token) {
-        const token = await database.one(
-            `SELECT user_token FROM users WHERE id = ${ctx.request.body.user_id}`
-        );
-        return checkUserToken(ctx, token);
+        if (ctx.request.body.user_id) {
+            const token = await database.one(
+                    `SELECT user_token
+                     FROM users WHERE id = ${ctx.request.body.user_id}`
+            );
+            return checkUserToken(ctx, token);
+        } else {
+            ctx.status = 403;
+            return false;
+        }
     } else {
         ctx.status = 403;
         return false;
@@ -86,7 +92,12 @@ router.get('/api/form', async (ctx) => {
 router.post('/api/form', async (ctx) => {
     if (!await checkToken(ctx)) { return; }
 
-    const data = await database.any(
+    if (!ctx.request.body.user_id) {
+        ctx.status = 403;
+        return false;
+    }
+
+    const data = await database.one(
         `SELECT * FROM users WHERE id = ${ctx.request.body.user_id}`
     );
 
@@ -143,6 +154,20 @@ router.put('/api/form', async (ctx) => {
     if (!await checkToken(ctx)) { return; }
 
     const data = ctx.request.body;
+
+    if (!data.passport) data.passport = {};
+    if (!data.parents) data.parents = {};
+    if (!data.parents.mother) data.parents.mother = {};
+    if (!data.parents.father) data.parents.father = {};
+    if (!data.certificate) data.certificate = {};
+
+    if (!data.passport.birthday) data.passport.birthday = 0;
+    if (!data.passport.seria) data.passport.seria = 0;
+    if (!data.passport.number) data.passport.number = 0;
+    if (!data.passport.issued_date) data.passport.issued_date = 0;
+    if (!data.parents.mother.birthday) data.parents.mother.birthday = 0;
+    if (!data.parents.father.birthday) data.parents.father.birthday = 0;
+    if (!data.certificate.issued_date) data.certificate.issued_date = 0;
 
     await database.none(
         `UPDATE users SET
