@@ -35,7 +35,7 @@ let number = 1;
 makeRequest('POST', 1, url + '/clear');
 
 const randomNumber = () => {
-    return Math.floor(Math.random() * (15000 - 5000)) + 5000;
+    return Math.floor(Math.random() * (20000 - 10000)) + 10000;
 };
 
 const sendNumberToQueue = () => {
@@ -45,13 +45,13 @@ const sendNumberToQueue = () => {
 
 const moveNumberToOperate = () => {
     if (status.queue) {
-        makeRequest('PUT', status.queue[status.queue.length - 1], url);
+        makeRequest('PUT', Math.min.apply(null, status.queue), url);
     }
 };
 
 const moveNumberFromOperate = () => {
     if (status.operate) {
-        makeRequest('DELETE', status.operate[status.operate.length - 1], url);
+        makeRequest('DELETE', Math.min.apply(null, status.operate), url);
     }
 };
 
@@ -80,7 +80,7 @@ const getQueue = () => {
 setInterval(function () {
     getQueue();
     checkQueue();
-}, 3000);
+}, 6000);
 
 let sNTQ = setTimeout(function tick() {
     getQueue();
